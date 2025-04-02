@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
 
 public class Room {
     public int x, y, width, height;
+    public Vector2 center;
     public Room left, right;
 
     public Room(int x, int y, int width, int height) {
@@ -14,6 +16,7 @@ public class Room {
         this.y = y;
         this.width = width;
         this.height = height;
+        this.center = new Vector2(x + width / 2f, y + height / 2f);
     }
 
     public void split(int minSize, int maxSize, List<Room> roomList) {
