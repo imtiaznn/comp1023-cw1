@@ -12,73 +12,87 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 public class Main extends ApplicationAdapter {
-    // Tilemap variables
     Texture tileset;
     TextureRegion[][] tiles;
     TextureRegion[] tileRegions;
-
-    // Debug variables
     Debug debug;
-
-    // Experimental Variables
     int numOfRooms = 5;
     int mapWidth = 60;
     int mapHeight = 40;
     int minRoomSize = 12;
     int maxRoomSize = 14;
-    
-    // Setup variables
     int[][] dungeonGrid;
-    
     OrthographicCamera camera;
     Viewport viewport;
     SpriteBatch batch;
+    private Player player;
     
     @Override
     public void create() {
-        // Debug initialisation
         debug = new Debug();
-
-        // Variable initialisation
         camera = new OrthographicCamera();
-        viewport = new FitViewport(mapWidth * 16, mapHeight * 16, camera);
+        viewport = new FitViewport(mapWidth * 12, mapHeight * 12, camera);
         viewport.apply();
-
         batch = new SpriteBatch();
-
-        // Tilemap initialisation
         tileset = new Texture("Tilemap/tilemap_packed.png");
-        tiles = TextureRegion.split(tileset, 16, 16); // Split tilemap into 2D array
-
+        tiles = TextureRegion.split(tileset, 16, 16);
         int rows = tiles.length;
         int cols = tiles[0].length;
-
-        // Flatten tiles into 1D array tileRegions        
         tileRegions = new TextureRegion[rows * cols];
         for (int y = 0; y < rows; y++) {
             for (int x = 0; x < cols; x++) {
                 tileRegions[y * cols + x] = tiles[y][x];
             }
         }
-
         generateDungeon();
+        Vector2 startPos = findStartPosition();
+        player = new Player(startPos.x * 16, startPos.y * 16);
+        camera.position.set(player.getX() + player.getWidth()/2, 
+                          player.getY() + player.getHeight()/2, 0);
+    }
+
+    private Vector2 findStartPosition() {
+        for (int y = 0; y < mapHeight; y++) {
+            for (int x = 0; x < mapWidth; x++) {
+                if (dungeonGrid[x][y] == 1) {
+                    return new Vector2(x, y);
+                }
+            }
+        }
+        return new Vector2(mapWidth/2, mapHeight/2);
     }
 
     @Override
     public void render() {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-    
+        
+        float halfViewportWidth = viewport.getWorldWidth() / 2;
+        float halfViewportHeight = viewport.getWorldHeight() / 2;
+        float minCameraX = halfViewportWidth;
+        float maxCameraX = (mapWidth * 16) - halfViewportWidth;
+        float minCameraY = halfViewportHeight;
+        float maxCameraY = (mapHeight * 16) - halfViewportHeight;
+        
+        float targetX = player.getX() + player.getWidth()/2;
+        float targetY = player.getY() + player.getHeight()/2;
+        
+        targetX = Math.max(minCameraX, Math.min(maxCameraX, targetX));
+        targetY = Math.max(minCameraY, Math.min(maxCameraY, targetY));
+        
+        camera.position.set(targetX, targetY, 0);
         camera.update();
+        
         batch.setProjectionMatrix(camera.combined);
-    
+        
         batch.begin();
+        
         for (int y = 0; y < mapHeight; y++) {
             for (int x = 0; x < mapWidth; x++) {
                 int tileId = dungeonGrid[x][y];
@@ -87,18 +101,45 @@ public class Main extends ApplicationAdapter {
                 }
             }
         }
-    
-        // Render debug button and regenerate if clicked
+        
+        player.update(Gdx.graphics.getDeltaTime());
+        player.render(batch);
+        
         if (debug.renderButton(batch)) {
             generateDungeon();
+            Vector2 startPos = findStartPosition();
+            player.setPosition(startPos.x * 16, startPos.y * 16);
         }
-    
+        
+        handleProjectileCollisions();
+        
         batch.end();
+    }
+    
+    private void handleProjectileCollisions() {
+        List<Projectile> projectiles = player.getProjectiles();
+        for (Projectile projectile : projectiles) {
+            Rectangle projectileBounds = projectile.getBounds();
+            int tileX = (int)(projectileBounds.x / 16);
+            int tileY = (int)(projectileBounds.y / 16);
+            
+            if (tileX >= 0 && tileX < mapWidth && tileY >= 0 && tileY < mapHeight) {
+                int tileId = dungeonGrid[tileX][tileY];
+                if (Dungeon.Tiles.isWall(tileId)) {
+                    projectile.setActive(false);
+                }
+            }
+            
+            if (projectileBounds.x < 0 || projectileBounds.x > mapWidth * 16 ||
+                projectileBounds.y < 0 || projectileBounds.y > mapHeight * 16) {
+                projectile.setActive(false);
+            }
+        }
     }
     
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height, true);
+        viewport.update(width, height);
         viewport.apply();
     }
 
@@ -106,27 +147,23 @@ public class Main extends ApplicationAdapter {
     public void dispose() {
         batch.dispose();
         tileset.dispose();
+        player.dispose();
     }
 
     public void generateDungeon() {
-        // Variable initialisation
         dungeonGrid = new int[mapWidth][mapHeight];
         List<Room> rooms = new ArrayList<>();
         List<Vector2> roomCentreList = new ArrayList<>();
         
-        // Procedural dungeon generation
         Room root = new Room(0, 0, mapWidth, mapHeight);
         root.split(minRoomSize, maxRoomSize, rooms);
 
-        // Select rooms for dungeon
         Collections.shuffle(rooms);
         List<Room> roomList = rooms.subList(0, Math.min(numOfRooms, rooms.size()));
         
-        // Assign tileIDs to dungeonGrid
         new Dungeon().generateFloors(roomList, dungeonGrid);
         dungeonGrid = new Dungeon().generateWalls(mapWidth, mapHeight, dungeonGrid);
         
-        // Get the centres of selected rooms and sort them
         for (Room room : roomList) {
             roomCentreList.add(room.center);
         }
