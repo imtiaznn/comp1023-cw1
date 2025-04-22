@@ -7,13 +7,17 @@ import java.util.List;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
@@ -26,16 +30,18 @@ public class Main extends ApplicationAdapter {
     // Debug variables
     Debug debug;
 
-    // Experimental Variables
+    // Experimental variables
     int numOfRooms = 5;
     int mapWidth = 60;
     int mapHeight = 40;
-    int minRoomSize = 12;
-    int maxRoomSize = 14;
+    int minRoomSize = 8;
+    int maxRoomSize = 10;
+
+    // Game variables
+    Dungeon dungeon = new Dungeon(1, mapWidth, mapHeight);
+    Player player;
     
     // Setup variables
-    int[][] dungeonGrid;
-    
     OrthographicCamera camera;
     Viewport viewport;
     SpriteBatch batch;
@@ -46,9 +52,13 @@ public class Main extends ApplicationAdapter {
         debug = new Debug();
 
         // Variable initialisation
+        int camWidth = mapWidth * 4;
+        int camHeight = mapHeight * 4;
+
         camera = new OrthographicCamera();
-        viewport = new FitViewport(mapWidth * 16, mapHeight * 16, camera);
-        viewport.apply();
+        camera.setToOrtho(false, camWidth, camHeight);
+
+        viewport = new FitViewport(camWidth, camHeight, camera);
 
         batch = new SpriteBatch();
 
@@ -59,7 +69,7 @@ public class Main extends ApplicationAdapter {
         int rows = tiles.length;
         int cols = tiles[0].length;
 
-        // Flatten tiles into 1D array tileRegions        
+        // Flatten tiles into 1D array tileRegions   
         tileRegions = new TextureRegion[rows * cols];
         for (int y = 0; y < rows; y++) {
             for (int x = 0; x < cols; x++) {
@@ -68,6 +78,17 @@ public class Main extends ApplicationAdapter {
         }
 
         generateDungeon();
+
+        Array<Rectangle> spawns = dungeon.getSpawns();
+        // Randomly select a spawn point for the player
+        int randomIndex = MathUtils.random(0, spawns.size - 1);
+        Rectangle spawn = spawns.get(randomIndex);
+
+        // Player initialisation
+        player = new Player(spawn.x, spawn.y, 100, 200, 100, 0, 10, 5, 10);
+        camera.position.set(player.getX() + player.getWidth()/2,
+        player.getY() + player.getHeight()/2, 0);
+
     }
 
     @Override
@@ -79,19 +100,43 @@ public class Main extends ApplicationAdapter {
         batch.setProjectionMatrix(camera.combined);
     
         batch.begin();
+
+        // Render debug button and regenerate if clicked
+        if (debug.renderButton(batch)) {
+            generateDungeon();
+        }
+
+        // Render dungeon grid on button press
         for (int y = 0; y < mapHeight; y++) {
             for (int x = 0; x < mapWidth; x++) {
-                int tileId = dungeonGrid[x][y];
+                int tileId = dungeon.getDungeonGrid()[x][y];
                 if (tileId >= 0 && tileId < tileRegions.length) {
                     batch.draw(tileRegions[tileId], x * 16, y * 16);
                 }
             }
         }
-    
-        // Render debug button and regenerate if clicked
-        if (debug.renderButton(batch)) {
-            generateDungeon();
-        }
+
+        // Draw player
+        player.update(dungeon);
+        player.render(batch);
+
+        // Update camera position based on player position
+        float camX = player.getX() + player.getWidth()/2;
+        float camY = player.getY() + player.getHeight()/2;
+        
+        camX = Math.max(
+            viewport.getWorldWidth() / 2,
+            Math.min((mapWidth * 16) - viewport.getWorldWidth() / 2, camX)
+            );
+        camY = Math.max(
+            viewport.getWorldHeight() / 2, 
+            Math.min((mapHeight *16) - viewport.getWorldHeight() / 2, camY)
+            );
+        
+        camera.position.set(camX, camY, 0);
+        camera.update();
+        
+        batch.setProjectionMatrix(camera.combined);
     
         batch.end();
     }
@@ -99,7 +144,8 @@ public class Main extends ApplicationAdapter {
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, true);
-        viewport.apply();
+        camera.update();
+        batch.setProjectionMatrix(camera.combined);
     }
 
     @Override
@@ -110,8 +156,8 @@ public class Main extends ApplicationAdapter {
 
     public void generateDungeon() {
         // Variable initialisation
-        dungeonGrid = new int[mapWidth][mapHeight];
-        List<Room> rooms = new ArrayList<>();
+        dungeon = new Dungeon(1, mapWidth, mapHeight);
+        List<Room> rooms = dungeon.getRoomsList();
         List<Vector2> roomCentreList = new ArrayList<>();
         
         // Procedural dungeon generation
@@ -123,15 +169,23 @@ public class Main extends ApplicationAdapter {
         List<Room> roomList = rooms.subList(0, Math.min(numOfRooms, rooms.size()));
         
         // Assign tileIDs to dungeonGrid
-        new Dungeon().generateFloors(roomList, dungeonGrid);
-        dungeonGrid = new Dungeon().generateWalls(mapWidth, mapHeight, dungeonGrid);
+        dungeon.generateFloors(roomList);
+        int[][] newGrid = dungeon.generateWalls(mapWidth, mapHeight);
+        dungeon.setDungeonGrid(newGrid);
         
         // Get the centres of selected rooms and sort them
         for (Room room : roomList) {
-            roomCentreList.add(room.center);
+            roomCentreList.add(room.getCenter());
         }
 
+        // Generate spawns
+        dungeon.generateSpawns();
+
+        // Generate hallways between rooms
         roomCentreList.sort(Comparator.comparingDouble(v -> v.x));
-        new Dungeon().generateHallways(roomCentreList, dungeonGrid);
+        dungeon.generateHallways(roomCentreList);
+
+        // Add collision boxes dungeon
+        dungeon.addCollision();
     }
 }

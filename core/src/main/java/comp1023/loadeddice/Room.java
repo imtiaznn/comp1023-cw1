@@ -7,9 +7,10 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 
 public class Room {
-    public int x, y, width, height;
-    public Vector2 center;
-    public Room left, right;
+    private int x, y, width, height;
+    private Vector2 center;
+    private List<Vector2> spawns;
+    private Room left, right;
 
     public Room(int x, int y, int width, int height) {
         this.x = x;
@@ -17,6 +18,13 @@ public class Room {
         this.width = width;
         this.height = height;
         this.center = new Vector2(x + width / 2f, y + height / 2f);
+
+        this.spawns = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            int spawnX = MathUtils.random(x + 1, x + width - 2);
+            int spawnY = MathUtils.random(y + 1, y + height - 2);
+            this.spawns.add(new Vector2(spawnX, spawnY));
+        }
     }
 
     public void split(int minSize, int maxSize, List<Room> roomList) {
@@ -51,8 +59,41 @@ public class Room {
         if (right != null) right.split(minSize, maxSize, roomList);
     }
 
-    // Optional: isLeaf check
+    // check if the room is a leaf node
     public boolean isLeaf() {
         return left == null && right == null;
+    }
+
+    // Getters
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public Vector2 getCenter() {
+        return center;
+    }
+
+    public List<Vector2> getSpawns() {
+        return spawns;
+    }
+
+    public Room getLeft() {
+        return left;
+    }
+
+    public Room getRight() {
+        return right;
     }
 }
