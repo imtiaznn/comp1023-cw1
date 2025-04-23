@@ -69,9 +69,9 @@ public abstract class Entity {
 
         // build a test rectangle at next tile
         Rectangle test = new Rectangle(
-            nextGX * 16, 
-            nextGY * 16, 
-            boundingBox.width, 
+            nextGX * 16,
+            nextGY * 16,
+            boundingBox.width,
             boundingBox.height
         );
 
@@ -97,22 +97,21 @@ public abstract class Entity {
     public void update(Dungeon dungeon) {
         if (!isMoving) return;
     
-        float dt   = Gdx.graphics.getDeltaTime();
-        float step = speed * dt;
+        float step = speed * Gdx.graphics.getDeltaTime();
     
         float dx = targetX - x;
         float dy = targetY - y;
     
         // --- X axis ---
         if (Math.abs(dx) > step) {
-            x += Math.signum(dx) * step;
+            x += (speed * Gdx.graphics.getDeltaTime()) * ((dx > 0) ? 1 : -1);
         } else {
             x = targetX;
         }
     
         // --- Y axis ---
         if (Math.abs(dy) > step) {
-            y += Math.signum(dy) * step;
+            y += (speed * Gdx.graphics.getDeltaTime()) * ((dy > 0) ? 1 : -1);
         } else {
             y = targetY;
         }
@@ -126,7 +125,6 @@ public abstract class Entity {
         }
     }
     
-
     public void setPosition(int x, int y) {
         this.x = x;
         this.y = y;
@@ -134,7 +132,12 @@ public abstract class Entity {
 
     public void render(SpriteBatch batch) {
         TextureRegion currentTex = currentDirection > 0 ? spriteRight : spriteLeft;
+        // snap to integer pixels to avoid sub‑pixel jitter
         batch.draw(currentTex, x, y, width, height);
+    }
+
+    public boolean isMoving() {
+        return isMoving;
     }
 
     // Getters

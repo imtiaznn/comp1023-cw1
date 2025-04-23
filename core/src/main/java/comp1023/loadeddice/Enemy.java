@@ -1,20 +1,38 @@
-// package comp1023.loadeddice;
+package comp1023.loadeddice;
 
-// public class Enemy extends Entity {
-//     private int attack;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
 
-//     public Enemy(int x, int y, int health, int speed, int attack) {
-//         super(x, y, health, speed);
-//         this.attack = attack;
-//     }
+public class Enemy extends Entity {
+    public Enemy(float x, float y, int health, int speed) {
+        super(x, y, health, speed, "enemy.png");
+    }
 
-//     public void attack(Player player) {
-//         // Logic for attacking the player
-//         System.out.println("Enemy attacks player for " + attack + " damage!");
-//         player.takeDamage(attack);
-//     }
+    @Override
+    public void update(Dungeon dungeon) {
+        super.update(dungeon);
 
-//     public void chase(Player player) {
-//         // Logic for chasing the player
-//     }
-// }
+        if (!isMoving) {
+            int dir = MathUtils.random(3);
+            switch (dir) {
+                case 0:
+                    move(1, 0, dungeon);
+                    break;
+                case 1:
+                    move(-1, 0, dungeon);
+                    break;
+                case 2:
+                    move(0, 1, dungeon);
+                    break;
+                case 3:
+                    move(0, -1, dungeon);
+                    break;
+            }
+        }
+    }
+
+    @Override
+    public void render(SpriteBatch batch) {
+        super.render(batch);
+    }
+}

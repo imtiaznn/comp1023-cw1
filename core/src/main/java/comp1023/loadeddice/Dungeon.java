@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
@@ -15,6 +16,7 @@ public class Dungeon {
     private List<Room> roomsList;
     private Array<Rectangle> collisionBoxes;
     private Array<Rectangle> spawns;
+    private Rectangle stair;
 
     // Constructor
     public Dungeon(int floorNumber, int width, int height) {
@@ -37,7 +39,7 @@ public class Dungeon {
         UP(8), DOWN(8),
         LEFT(7), RIGHT(7),
         
-        HALL(9);
+        STAIR(9);
 
         private final int value;
 
@@ -160,6 +162,15 @@ public class Dungeon {
         }
     }
 
+    // Add stairs to the dungeon
+    public void addStairs() {
+        if (spawns.size == 0) return;
+        Rectangle spawn = spawns.random();
+
+        dungeonGrid[(int)(spawn.x/16)][(int)(spawn.y/16)] = Tiles.STAIR.getTile();
+        stair = new Rectangle(spawn.x, spawn.y, 16, 16);
+    }
+
     // -- Helper methods --
     // Carve horizontal hallways
     private void carveHorizontal(int x1, int x2, int y) {
@@ -208,6 +219,10 @@ public class Dungeon {
 
     public Array<Rectangle> getSpawns() {
         return spawns;
+    }
+
+    public Rectangle getStair() {
+        return stair;
     }
 
     //Setters

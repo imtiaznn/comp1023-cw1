@@ -40,6 +40,7 @@ public class Main extends ApplicationAdapter {
     // Game variables
     Dungeon dungeon = new Dungeon(1, mapWidth, mapHeight);
     Player player;
+    Array<Enemy> enemies;
     
     // Setup variables
     OrthographicCamera camera;
@@ -78,17 +79,6 @@ public class Main extends ApplicationAdapter {
         }
 
         generateDungeon();
-
-        Array<Rectangle> spawns = dungeon.getSpawns();
-        // Randomly select a spawn point for the player
-        int randomIndex = MathUtils.random(0, spawns.size - 1);
-        Rectangle spawn = spawns.get(randomIndex);
-
-        // Player initialisation
-        player = new Player(spawn.x, spawn.y, 100, 200, 100, 0, 10, 5, 10);
-        camera.position.set(player.getX() + player.getWidth()/2,
-        player.getY() + player.getHeight()/2, 0);
-
     }
 
     @Override
@@ -116,9 +106,15 @@ public class Main extends ApplicationAdapter {
             }
         }
 
-        // Draw player
+        // Update player
         player.update(dungeon);
         player.render(batch);
+
+        // Update enemies
+        for (Enemy enemy : enemies) {
+            enemy.update(dungeon);
+            enemy.render(batch);
+        }
 
         // Update camera position based on player position
         float camX = player.getX() + player.getWidth()/2;
@@ -133,9 +129,8 @@ public class Main extends ApplicationAdapter {
             Math.min((mapHeight *16) - viewport.getWorldHeight() / 2, camY)
             );
         
-        camera.position.set(camX, camY, 0);
+        camera.position.set(Math.round(camX), Math.round(camY), 0);
         camera.update();
-        
         batch.setProjectionMatrix(camera.combined);
     
         batch.end();
@@ -159,6 +154,7 @@ public class Main extends ApplicationAdapter {
         dungeon = new Dungeon(1, mapWidth, mapHeight);
         List<Room> rooms = dungeon.getRoomsList();
         List<Vector2> roomCentreList = new ArrayList<>();
+        Array<Rectangle> spawns = dungeon.getSpawns();
         
         // Procedural dungeon generation
         Room root = new Room(0, 0, mapWidth, mapHeight);
@@ -187,5 +183,35 @@ public class Main extends ApplicationAdapter {
 
         // Add collision boxes dungeon
         dungeon.addCollision();
+
+        // Randomly select a spawn point for the player
+        int randomIndex = MathUtils.random(0, spawns.size - 1);
+        Rectangle spawn = spawns.get(randomIndex);
+
+        // --- Spawner initialisations ---
+        // Stair spawns 
+        dungeon.addStairs();
+
+        // Player spawns
+        player = new Player(spawn.x, spawn.y, 100, 175, 100, 0, 10, 5, 10);
+        spawns.removeIndex(randomIndex);
+
+        enemies = new Array<>();
+
+        // Enemy spawns
+        int level = dungeon.getFloorNumber();
+        int totalEnemies = (level + 1) * 2;
+
+        for (int i = 0; i < totalEnemies; i++) {
+            // Randomly select a spawn point for the enemy
+            randomIndex = MathUtils.random(0, spawns.size - 1);
+            spawn = spawns.get(randomIndex);
+            // Remove the spawn point from the list
+            spawns.removeIndex(randomIndex);
+            // Create a new enemy
+            Enemy enemy = new Enemy(spawn.x, spawn.y, 100, 50);
+            // Add the enemy to the list
+            enemies.add(enemy);
+        }
     }
 }
