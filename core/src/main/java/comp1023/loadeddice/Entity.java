@@ -154,6 +154,8 @@ public abstract class Entity {
     public int getTargetY() { return targetY; }
     public TextureRegion getSpriteLeft() { return spriteLeft; }
     public TextureRegion getSpriteRight() { return spriteRight; }
+    public Rectangle getBoundingBox() { return boundingBox; }
+    public int getCurrentDirection() { return currentDirection; }  
 
     // Setters
     public void setX(int x) { this.x = x; }

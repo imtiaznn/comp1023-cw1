@@ -110,6 +110,12 @@ public class Main extends ApplicationAdapter {
         player.update(dungeon);
         player.render(batch);
 
+        if(Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.E)) {
+            if (player.getBoundingBox().overlaps(dungeon.getStair())) {
+                generateDungeon();
+            }
+        }
+
         // Update enemies
         for (Enemy enemy : enemies) {
             enemy.update(dungeon);

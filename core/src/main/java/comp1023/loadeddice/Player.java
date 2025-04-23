@@ -41,15 +41,6 @@ public class Player extends Entity {
             move(pendingDX, pendingDY, dungeon);
             pendingDX = pendingDY = 0;
         }
-
-        // Proceed to next level
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            Rectangle stair = dungeon.getStair();
-            if (stair.overlaps(boundingBox)) {
-                // Proceed to next level
-                System.out.println("Proceeding to next level...");
-            }
-        }
     }
 
 
