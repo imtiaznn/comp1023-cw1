@@ -5,12 +5,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -21,33 +20,38 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
-public class Main extends ApplicationAdapter {
+public class Main implements Screen {
+    private final Game game;
     // Tilemap variables
-    Texture tileset;
-    TextureRegion[][] tiles;
-    TextureRegion[] tileRegions;
+    private Texture tileset;
+    private TextureRegion[][] tiles;
+    private TextureRegion[] tileRegions;
 
     // Debug variables
-    Debug debug;
+    private Debug debug;
 
     // Experimental variables
-    int numOfRooms = 5;
-    int mapWidth = 60;
-    int mapHeight = 40;
-    int minRoomSize = 8;
-    int maxRoomSize = 10;
+    private int numOfRooms = 5;
+    private int mapWidth = 60;
+    private int mapHeight = 40;
+    private int minRoomSize = 8;
+    private int maxRoomSize = 10;
 
     // Game variables
-    Dungeon dungeon = new Dungeon(1, mapWidth, mapHeight);
-    Player player;
+    private Dungeon dungeon;
+    private Player player;
     
     // Setup variables
-    OrthographicCamera camera;
-    Viewport viewport;
-    SpriteBatch batch;
-    
-    @Override
-    public void create() {
+    private OrthographicCamera camera;
+    private Viewport viewport;
+    private SpriteBatch batch;
+
+    public Main(Game game) {
+        this.game = game;
+        initialize();
+    }
+
+    private void initialize() {
         // Debug initialisation
         debug = new Debug();
 
@@ -63,7 +67,7 @@ public class Main extends ApplicationAdapter {
         batch = new SpriteBatch();
 
         // Tilemap initialisation
-        tileset = new Texture("Tilemap/tilemap_packed.png");
+        tileset = new Texture(Gdx.files.internal("assets/Tilemap/tilemap_packed.png"));
         tiles = TextureRegion.split(tileset, 16, 16); // Split tilemap into 2D array
 
         int rows = tiles.length;
@@ -88,11 +92,10 @@ public class Main extends ApplicationAdapter {
         player = new Player(spawn.x, spawn.y, 100, 200, 100, 0, 10, 5, 10);
         camera.position.set(player.getX() + player.getWidth()/2,
         player.getY() + player.getHeight()/2, 0);
-
     }
 
     @Override
-    public void render() {
+    public void render(float delta) {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
     
@@ -154,7 +157,7 @@ public class Main extends ApplicationAdapter {
         tileset.dispose();
     }
 
-    public void generateDungeon() {
+    private void generateDungeon() {
         // Variable initialisation
         dungeon = new Dungeon(1, mapWidth, mapHeight);
         List<Room> rooms = dungeon.getRoomsList();
@@ -187,5 +190,25 @@ public class Main extends ApplicationAdapter {
 
         // Add collision boxes dungeon
         dungeon.addCollision();
+    }
+
+    @Override
+    public void show() {
+        // Called when this screen becomes the current screen
+    }
+
+    @Override
+    public void hide() {
+        // Called when this screen is no longer the current screen
+    }
+
+    @Override
+    public void pause() {
+        // Called when the game is paused
+    }
+
+    @Override
+    public void resume() {
+        // Called when the game is resumed
     }
 }
