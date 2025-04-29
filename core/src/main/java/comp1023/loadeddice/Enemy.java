@@ -6,6 +6,8 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class Enemy extends Entity {
+    private int damage = 20;
+
     public Enemy(float x, float y, int health, int speed) {
         super(x, y, health, speed, "enemy.png");
     }
@@ -38,4 +40,10 @@ public class Enemy extends Entity {
     public void render(SpriteBatch batch) {
         super.render(batch);
     }
+
+    // Getters
+    public int getDamage() {return damage;}
+
+    // Setters
+    public void setDamage(int damage) {this.damage = damage;}
 }

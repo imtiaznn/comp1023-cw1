@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
@@ -45,6 +46,10 @@ public class Main extends ApplicationAdapter {
     OrthographicCamera camera;
     Viewport viewport;
     SpriteBatch batch;
+
+    private BitmapFont font;
+    private Texture uiPixel;
+    private com.badlogic.gdx.graphics.g2d.GlyphLayout layout;
     
     @Override
     public void create() {
@@ -74,6 +79,18 @@ public class Main extends ApplicationAdapter {
             }
         }
 
+        font = new BitmapFont();
+        font.getData().setScale(0.5f, 0.5f);
+        font.setColor(Color.WHITE);
+
+        Pixmap pm = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pm.setColor(Color.WHITE);
+        pm.fill();
+        uiPixel = new Texture(pm);
+        pm.dispose();
+
+        layout = new com.badlogic.gdx.graphics.g2d.GlyphLayout();
+
         generateDungeon();
     }
 
@@ -100,6 +117,7 @@ public class Main extends ApplicationAdapter {
         // Update player
         player.update(dungeon);
         player.render(batch);
+        player.renderHealthBar(batch);
 
         // Next floor logic
         if(Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.E)) {
@@ -113,10 +131,34 @@ public class Main extends ApplicationAdapter {
         for (Enemy enemy : enemies) {
             enemy.update(dungeon);
             enemy.render(batch);
+
+            enemy.renderHealthBar(batch);
         }
 
         // Handle collisions
         handleCollisions();
+
+        String text = "Floor: " + floorNumber;
+        layout.setText(font, text);
+        float textW = layout.width;
+        float textH = layout.height;
+        
+        float hudX = camera.position.x - viewport.getWorldWidth()/2 + 10;
+        float hudY = camera.position.y + viewport.getWorldHeight()/2 - 10;
+        
+        float pad = 4f;
+        // dark‐gray background
+        batch.setColor(Color.DARK_GRAY);
+        batch.draw(uiPixel,
+            hudX - pad,
+            hudY - textH - pad,
+            textW + pad * 2,
+            textH + pad * 2
+        );
+        // white text
+        batch.setColor(Color.WHITE);
+        font.draw(batch, text, hudX, hudY);
+
 
         // Update camera position based on player position
         float camX = player.getX() + player.getWidth()/2;
@@ -149,6 +191,8 @@ public class Main extends ApplicationAdapter {
     public void dispose() {
         batch.dispose();
         tileset.dispose();
+        font.dispose();
+        uiPixel.dispose();
     }
 
     public void generateDungeon() {
@@ -195,13 +239,13 @@ public class Main extends ApplicationAdapter {
         dungeon.addStairs();
 
         // Player spawns
-        player = new Player(spawn.x, spawn.y, 100, 175, 100, 10, 6);
+        player = new Player(spawn.x, spawn.y, 100, 125, 100, 10, 6);
         spawns.removeIndex(randomIndex);
         
         // Enemy spawns
         enemies = new Array<>();
 
-        int totalEnemies = (floorNumber + 1) * 2;
+        int totalEnemies = Math.min((floorNumber+1)*2, spawns.size);
 
         for (int i = 0; i < totalEnemies; i++) {
             // Randomly select a spawn point for the enemy
@@ -219,7 +263,9 @@ public class Main extends ApplicationAdapter {
     public void handleCollisions() {
         Array<Projectile>   projList = player.getProjectiles();
         Array<Enemy>        enemyList = enemies;
+        Rectangle playerBox = player.getBoundingBox();
     
+        // Projectile collision detection
         for (int i = projList.size - 1; i >= 0; i--) {
             Projectile p = projList.get(i);
     
@@ -228,9 +274,9 @@ public class Main extends ApplicationAdapter {
     
             Rectangle pBox = p.getBoundingBox();
     
+            // Projectile collision
             for (int j = enemyList.size - 1; j >= 0; j--) {
                 Enemy e = enemyList.get(j);
-    
                 if (pBox.overlaps(e.getBoundingBox())) {
                     e.takeDamage(p.getDamage());
 
@@ -240,11 +286,32 @@ public class Main extends ApplicationAdapter {
     
                     p.setActive(false);
                     projList.removeIndex(i);
-
                     break;
                 }
             }
+
+            // Wall collision
+            Array<Rectangle> walls = dungeon.getCollisionBoxes();
+            for (Rectangle wall : walls) {
+                if (pBox.overlaps(wall)) {
+                    p.setActive(false);
+                    projList.removeIndex(i);
+                    break;
+                }
+            }
+
         }
+
+        // Player collision dtection
+        for (Enemy e : enemies) {
+            if (playerBox.overlaps(e.getBoundingBox())) {
+                if (player.getImmunity() <= 0) {
+                    player.takeDamage(e.getDamage());
+                    player.setImmunity(0.5f);
+                }
+            }
+        }
+
     }
     
 

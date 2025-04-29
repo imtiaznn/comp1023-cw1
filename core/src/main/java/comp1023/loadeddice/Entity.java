@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -141,14 +143,27 @@ public abstract class Entity {
         if (x == targetX && y == targetY) {
             isMoving = false;
         }
-
-        if (health <= 0) {
-            // Handle death
-            System.out.println("Entity has died.");
-            this.dispose();
-        }
     }
-    
+
+    public void renderHealthBar(SpriteBatch batch) {
+
+        Pixmap pm = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pm.setColor(Color.WHITE);
+        pm.fill();
+        Texture whitePixel = new Texture(pm);
+        
+        float pct = (float)health / maxHealth;
+        float barW = width, barH = 4;
+        float bx = x, by = y + height + 2;
+        batch.setColor(Color.RED);
+        batch.draw(whitePixel, bx, by, barW, barH);
+        batch.setColor(Color.GREEN);
+        batch.draw(whitePixel, bx, by, barW * pct, barH);
+        batch.setColor(Color.WHITE);
+        
+        pm.dispose();
+    }
+
     public void setPosition(int x, int y) {
         this.x = x;
         this.y = y;
@@ -193,8 +208,8 @@ public abstract class Entity {
     public Direction getDirection() { return direction; }
 
     // Setters
-    public void setX(int x) { this.x = x; }
-    public void setY(int y) { this.y = y; }
+    public void setX(float x) { this.x = x; }
+    public void setY(float y) { this.y = y; }
     public void setGridX(int gridX) { this.gridX = gridX; }
     public void setGridY(int gridY) { this.gridY = gridY; }
     public void setWidth(int width) { this.width = width; }

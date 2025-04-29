@@ -8,19 +8,18 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 public class Player extends Entity {
     private int maxHealth;
-    private int health;
     private int score;
     private int attack;
     private int ammo;
 
     private float attackCooldown = 0.5f;
     private int pendingDX, pendingDY;
-
+    
+    private float immunity = 0;
     private Array<Projectile> projectiles = new Array<>();
 
     public Player(float x, float y, int health, int speed, int score, int attack, int ammo) {
         super(x, y, health, speed, "player.png");
-        this.health = health;
         this.score = score;
         this.attack = attack;
         this.ammo = ammo;
@@ -48,7 +47,15 @@ public class Player extends Entity {
 
         if (attackCooldown <= 0 && Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             fire();
-            attackCooldown = 0.5f;
+            attackCooldown = 0.2f;
+        }
+
+        if (getHealth() <= 0) {
+            Gdx.app.exit();
+        }
+
+        if (immunity > 0) {
+            immunity = Math.max(0f, immunity - Gdx.graphics.getDeltaTime());
         }
     }
 
@@ -79,4 +86,12 @@ public class Player extends Entity {
 
     // Getters and Setters
     public Array<Projectile> getProjectiles() { return projectiles; }
+
+    public float getImmunity() {
+        return immunity;
+    }
+
+    public void setImmunity(float immunity) {
+        this.immunity = immunity;
+    }
 }

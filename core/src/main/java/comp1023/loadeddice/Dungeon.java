@@ -142,7 +142,7 @@ public class Dungeon {
         floors.shuffle();
 
         // Choose up to 5 random floor tiles
-        int spawnCount = Math.min(5, floors.size);
+        int spawnCount = (floorNumber + 1) * 2;
         for (int i = 0; i < spawnCount; i++) {
             Vector2 pos = floors.get(i);
             Rectangle spawn = new Rectangle(pos.x * 16, pos.y * 16, 16, 16);
