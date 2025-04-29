@@ -2,6 +2,8 @@ package comp1023.loadeddice;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class Enemy extends Entity {
     public Enemy(float x, float y, int health, int speed) {
@@ -12,6 +14,7 @@ public class Enemy extends Entity {
     public void update(Dungeon dungeon) {
         super.update(dungeon);
 
+        // Random movement logic
         if (!isMoving) {
             int dir = MathUtils.random(3);
             switch (dir) {

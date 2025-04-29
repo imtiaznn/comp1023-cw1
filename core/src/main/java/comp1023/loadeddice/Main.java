@@ -27,9 +27,6 @@ public class Main extends ApplicationAdapter {
     TextureRegion[][] tiles;
     TextureRegion[] tileRegions;
 
-    // Debug variables
-    Debug debug;
-
     // Experimental variables
     int numOfRooms = 5;
     int mapWidth = 60;
@@ -38,9 +35,11 @@ public class Main extends ApplicationAdapter {
     int maxRoomSize = 10;
 
     // Game variables
+    int floorNumber = 1;
     Dungeon dungeon = new Dungeon(1, mapWidth, mapHeight);
     Player player;
-    Array<Enemy> enemies;
+    Array<Enemy> enemies = new Array<>();
+    Array<Projectile> projectiles = new Array<>();
     
     // Setup variables
     OrthographicCamera camera;
@@ -49,9 +48,6 @@ public class Main extends ApplicationAdapter {
     
     @Override
     public void create() {
-        // Debug initialisation
-        debug = new Debug();
-
         // Variable initialisation
         int camWidth = mapWidth * 4;
         int camHeight = mapHeight * 4;
@@ -91,11 +87,6 @@ public class Main extends ApplicationAdapter {
     
         batch.begin();
 
-        // Render debug button and regenerate if clicked
-        if (debug.renderButton(batch)) {
-            generateDungeon();
-        }
-
         // Render dungeon grid on button press
         for (int y = 0; y < mapHeight; y++) {
             for (int x = 0; x < mapWidth; x++) {
@@ -110,8 +101,10 @@ public class Main extends ApplicationAdapter {
         player.update(dungeon);
         player.render(batch);
 
+        // Next floor logic
         if(Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.E)) {
             if (player.getBoundingBox().overlaps(dungeon.getStair())) {
+                floorNumber++;
                 generateDungeon();
             }
         }
@@ -121,6 +114,9 @@ public class Main extends ApplicationAdapter {
             enemy.update(dungeon);
             enemy.render(batch);
         }
+
+        // Handle collisions
+        handleCollisions();
 
         // Update camera position based on player position
         float camX = player.getX() + player.getWidth()/2;
@@ -157,10 +153,9 @@ public class Main extends ApplicationAdapter {
 
     public void generateDungeon() {
         // Variable initialisation
-        dungeon = new Dungeon(1, mapWidth, mapHeight);
+        dungeon = new Dungeon(floorNumber, mapWidth, mapHeight);
         List<Room> rooms = dungeon.getRoomsList();
         List<Vector2> roomCentreList = new ArrayList<>();
-        Array<Rectangle> spawns = dungeon.getSpawns();
         
         // Procedural dungeon generation
         Room root = new Room(0, 0, mapWidth, mapHeight);
@@ -182,6 +177,7 @@ public class Main extends ApplicationAdapter {
 
         // Generate spawns
         dungeon.generateSpawns();
+        Array<Rectangle> spawns = dungeon.getSpawns();
 
         // Generate hallways between rooms
         roomCentreList.sort(Comparator.comparingDouble(v -> v.x));
@@ -199,14 +195,13 @@ public class Main extends ApplicationAdapter {
         dungeon.addStairs();
 
         // Player spawns
-        player = new Player(spawn.x, spawn.y, 100, 175, 100, 0, 10, 5, 10);
+        player = new Player(spawn.x, spawn.y, 100, 175, 100, 10, 6);
         spawns.removeIndex(randomIndex);
-
+        
+        // Enemy spawns
         enemies = new Array<>();
 
-        // Enemy spawns
-        int level = dungeon.getFloorNumber();
-        int totalEnemies = (level + 1) * 2;
+        int totalEnemies = (floorNumber + 1) * 2;
 
         for (int i = 0; i < totalEnemies; i++) {
             // Randomly select a spawn point for the enemy
@@ -215,9 +210,42 @@ public class Main extends ApplicationAdapter {
             // Remove the spawn point from the list
             spawns.removeIndex(randomIndex);
             // Create a new enemy
-            Enemy enemy = new Enemy(spawn.x, spawn.y, 100, 50);
+            Enemy enemy = new Enemy(spawn.x, spawn.y, 90, 50);
             // Add the enemy to the list
             enemies.add(enemy);
         }
     }
+
+    public void handleCollisions() {
+        Array<Projectile>   projList = player.getProjectiles();
+        Array<Enemy>        enemyList = enemies;
+    
+        for (int i = projList.size - 1; i >= 0; i--) {
+            Projectile p = projList.get(i);
+    
+            // Skip ones that already hit something
+            if (!p.isActive()) continue;
+    
+            Rectangle pBox = p.getBoundingBox();
+    
+            for (int j = enemyList.size - 1; j >= 0; j--) {
+                Enemy e = enemyList.get(j);
+    
+                if (pBox.overlaps(e.getBoundingBox())) {
+                    e.takeDamage(p.getDamage());
+
+                    if (e.getHealth() <= 0) {
+                        enemyList.removeIndex(j);
+                    }
+    
+                    p.setActive(false);
+                    projList.removeIndex(i);
+
+                    break;
+                }
+            }
+        }
+    }
+    
+
 }

@@ -22,8 +22,8 @@ public abstract class Entity {
     protected int gridX, gridY;
     protected int targetX, targetY;
 
-    protected int currentDirection = 1; // 1 for right, -1 for left
     protected boolean isMoving = false;
+    protected Direction direction;;
 
     // Properties variables
     protected int width = 16;
@@ -35,8 +35,25 @@ public abstract class Entity {
 
     protected Rectangle boundingBox;
 
+    public enum Direction {
+        UP    (0,  1),
+        DOWN  (0, -1),
+        LEFT  (-1, 0),
+        RIGHT (1,  0);
+    
+        private final Vector2 vec;
+        Direction(float x, float y) {
+            vec = new Vector2(x, y);
+        }
+
+        public Vector2 vector() {
+            return vec.cpy();
+        }
+    }
+
     public Entity(float x, float y, int health, int speed, String spritePath) {
         Texture spriteTex = new Texture(Gdx.files.internal(spritePath));
+        direction = Direction.DOWN;
         
         this.gridX = (int)Math.floor(x / 16f);
         this.gridY = (int)Math.floor(y / 16f);
@@ -86,10 +103,11 @@ public abstract class Entity {
         targetX = nextGX * 16;
         targetY = nextGY * 16;
 
-        // Update direction for sprite rendering
-        if (dirX != 0) {
-            currentDirection = dirX > 0 ? -1 : 1;
-        }
+        // Update direction for sprite rendering if (dirX == 0 && dirY == 1) direction = Direction.UP;
+        if (dirX == 0 && dirY == 1) direction = Direction.UP;
+        else if (dirX == 0 && dirY == -1) direction = Direction.DOWN;
+        else if (dirX == -1 && dirY == 0) direction = Direction.LEFT;
+        else if (dirX == 1 && dirY == 0) direction = Direction.RIGHT;
 
         isMoving = true;
     }
@@ -123,6 +141,12 @@ public abstract class Entity {
         if (x == targetX && y == targetY) {
             isMoving = false;
         }
+
+        if (health <= 0) {
+            // Handle death
+            System.out.println("Entity has died.");
+            this.dispose();
+        }
     }
     
     public void setPosition(int x, int y) {
@@ -131,9 +155,20 @@ public abstract class Entity {
     }
 
     public void render(SpriteBatch batch) {
-        TextureRegion currentTex = currentDirection > 0 ? spriteRight : spriteLeft;
+        TextureRegion currentTex =  direction == Direction.LEFT ? spriteRight : spriteLeft;
         // snap to integer pixels to avoid sub‑pixel jitter
         batch.draw(currentTex, x, y, width, height);
+    }
+
+    public void dispose() {
+        // Dispose of any resources used by the entity
+        spriteLeft.getTexture().dispose();
+        spriteRight.getTexture().dispose();
+    }
+
+    public void takeDamage(int damage) {
+        this.health -= damage;
+        if (this.health < 0) this.health = 0;
     }
 
     public boolean isMoving() {
@@ -155,9 +190,22 @@ public abstract class Entity {
     public TextureRegion getSpriteLeft() { return spriteLeft; }
     public TextureRegion getSpriteRight() { return spriteRight; }
     public Rectangle getBoundingBox() { return boundingBox; }
-    public int getCurrentDirection() { return currentDirection; }  
+    public Direction getDirection() { return direction; }
 
     // Setters
     public void setX(int x) { this.x = x; }
     public void setY(int y) { this.y = y; }
+    public void setGridX(int gridX) { this.gridX = gridX; }
+    public void setGridY(int gridY) { this.gridY = gridY; }
+    public void setWidth(int width) { this.width = width; }
+    public void setHeight(int height) { this.height = height; }
+    public void setHealth(int health) { this.health = health; }
+    public void setMaxHealth(int maxHealth) { this.maxHealth = maxHealth; }
+    public void setSpeed(int speed) { this.speed = speed; }
+    public void setTargetX(int targetX) { this.targetX = targetX; }
+    public void setTargetY(int targetY) { this.targetY = targetY; }
+    public void setSpriteLeft(TextureRegion spriteLeft) { this.spriteLeft = spriteLeft; }
+    public void setSpriteRight(TextureRegion spriteRight) { this.spriteRight = spriteRight; }
+    public void setBoundingBox(Rectangle boundingBox) { this.boundingBox = boundingBox; }
+    public void setDirection(Direction direction) { this.direction = direction; }
 }
